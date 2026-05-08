@@ -1,0 +1,2334 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Risk Intelligence Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-color: #f0f4f8;
+            --card-bg: #ffffff;
+            --primary-color: #3498db;
+            --primary-hover: #2980b9;
+            --secondary-color: #2c3e50;
+            --text-main: #2c3e50;
+            --text-sub: #7f8c8d;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            --risk-low: #27ae60;
+            --risk-mid: #f39c12;
+            --risk-high: #c0392b;
+        }
+
+        body {
+            font-family: 'Verdana', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin: 0;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            margin-top: 10px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .full-width {
+            grid-column: span 2;
+        }
+
+        label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        #submitBtn {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        #resetBtn {
+            background-color: #ff665e;
+            color: white;
+        }
+
+        #downloadBtn {
+            background-color: var(--secondary-color);
+            color: white;
+            display: none;
+        }
+
+        #gaugeMeter {
+            height: 300px;
+        }
+
+        .scorecard-group {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .scorecard {
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border-top: 4px solid #ddd;
+            background: #fff;
+            box-shadow: var(--shadow);
+        }
+
+        .score-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 5px 0 0 0;
+        }
+
+        .border-low {
+            border-color: #27ae60 !important;
+        }
+
+        .border-mid {
+            border-color: #f39c12 !important;
+        }
+
+        .border-high {
+            border-color: #c0392b !important;
+        }
+
+        .bottom-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+        }
+
+        #graph {
+            height: 400px;
+        }
+
+        #loginModal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        .modal-content {
+            width: 320px;
+            margin: 12% auto;
+            padding: 30px;
+            background: white;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        #measuresList li {
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        /* Chatbot Button */
+
+        #chatbot-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 65px;
+            height: 65px;
+            background: linear-gradient(135deg, #000000, #444444);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            cursor: pointer;
+            box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3);
+            z-index: 999;
+            background: none;
+            padding: 0;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        #chatbot-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0px 6px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Chat Window */
+
+        #chatbot-window {
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
+            width: 420px;
+            height: 550px;
+            max-width: 90vw;
+            max-height: 90vh;
+            background: white;
+            border-radius: 20px;
+            display: none;
+            flex-direction: column;
+            z-index: 999;
+            overflow: hidden;
+            box-shadow: 0px 8px 25px rgba(0, 0, 0, 0.25);
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Messages Area */
+
+        #chatbot-messages {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            background: #ffffff;
+            scroll-behavior: smooth;
+        }
+
+        .typing {
+            display: flex;
+            gap: 5px;
+            padding: 10px;
+        }
+
+        .typing span {
+            width: 8px;
+            height: 8px;
+            background: #888;
+            border-radius: 50%;
+            animation: blink 1.4s infinite;
+        }
+
+        .typing span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes blink {
+            0% {
+                opacity: 0.2;
+            }
+
+            20% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.2;
+            }
+        }
+
+        .typing {
+            background: #e4e4e4;
+            border-radius: 10px;
+            margin: 6px;
+            max-width: 60px;
+        }
+
+        .typing span {
+            width: 10px;
+            height: 10px;
+            background: #555;
+        }
+
+        /* Input Area */
+
+        #chatbot-input-area {
+            display: flex;
+            height: 60px;
+            border-top: 1px solid #e1e5e9;
+            background: white;
+            padding: 10px 15px;
+            gap: 10px;
+        }
+
+        /* Input Box */
+
+        #chatbot-input {
+            flex: 1;
+            border: 2px solid #e1e5e9;
+            border-radius: 25px;
+            padding: 12px 20px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        #chatbot-input:focus {
+            border-color: #667eea;
+        }
+
+        /* Send Button */
+        #chatbot-send {
+            width: 50px;
+            height: 50px;
+            border: none;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #28a745, #1e7e34);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Hover */
+        #chatbot-send:hover {
+            transform: scale(1.05);
+            background: linear-gradient(135deg, #1e7e34, #155d27);
+        }
+
+        /* Click */
+        #chatbot-send:active {
+            transform: scale(0.95);
+        }
+
+        #chatbot-send.sending {
+            background: #555;
+            pointer-events: none;
+        }
+
+        #chatbot-send.sending i {
+            animation: fly 0.6s ease;
+        }
+
+        @keyframes fly {
+            0% {
+                transform: translateX(0);
+                opacity: 1;
+            }
+
+            50% {
+                transform: translateX(8px);
+                opacity: 0.7;
+            }
+
+            100% {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* #chatbot-input-area button {
+     width: 80px;
+     background: black;
+     color: white;
+     border: none;
+     cursor: pointer;
+    } */
+
+        /* Message Bubbles */
+        .message {
+            margin-bottom: 12px;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .user-message {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 18px 18px 4px 18px;
+            margin-left: auto;
+            max-width: 80%;
+            word-wrap: break-word;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+            font-size: 14px;
+            line-height: 1.4;
+            margin-top: 6px;
+        }
+
+        .bot-message {
+            background: white;
+            color: #374151;
+            padding: 12px 16px;
+            border-radius: 18px 18px 18px 4px;
+            margin-right: auto;
+            max-width: 80%;
+            word-wrap: break-word;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+            font-size: 14px;
+            line-height: 1.4;
+            margin-top: 6px;
+        }
+
+        .message-time {
+            font-size: 9px;
+            color: #9ca3af;
+            margin-top: 4px;
+            text-align: right;
+        }
+
+        .user-message .message-time {
+            text-align: right;
+        }
+
+        .bot-message .message-time {
+            text-align: left;
+        }
+
+        /* Small Speaker Icon */
+
+        .speaker-icon {
+            width: 40px;
+            height: 40px;
+            background: #f1f5f9;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s ease;
+            color: #64748b;
+        }
+
+        .speaker-icon:hover {
+            color: #007bff;
+        }
+
+        /* microphone  */
+        #mic-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Hover effect */
+        #mic-btn:hover {
+            transform: scale(1.1);
+            background: linear-gradient(135deg, #0056b3, #003f7f);
+        }
+
+        /* Click effect */
+        #mic-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* voice recording animation */
+        #mic-btn.recording {
+            background: red;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.15);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+
+
+
+
+        #quick-menu-container {
+            position: fixed;
+            bottom: 180px;
+            right: 20px;
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: flex-end;
+            z-index: 9999;
+        }
+
+        #quick-toggle-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background-color: black;
+            color: white;
+            font-size: 20px;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.3);
+
+        }
+
+        #quick-toggle-btn:hover {
+
+            background-color: #1557b0;
+        }
+
+        #quick-buttons-panel {
+            display: none;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 8px;
+
+        }
+
+        /* #quick-buttons-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 10px;
+            opacity: 0;
+            transform: translateY(10px);
+            pointer-events: none;
+            transition: all 0.25s ease;
+        } */
+
+        #quick-buttons-panel.active {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+
+        /* 
+        .quick-btn {
+            background: linear-gradient(135deg, #ffffff, #f3f3f3);
+            color: #333;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 25px;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+            transition: all 0.25s ease;
+            white-space: nowrap;
+        } */
+        .quick-btn {
+            background-color: white;
+            color: black;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 6px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.15);
+        }
+
+        /* .quick-btn:hover {
+            border: 1px solid blue;
+            color: #000000;
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.2);
+        } */
+
+        /* Click effect */
+        .quick-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Optional: subtle glow when panel open */
+        /* #quick-buttons-panel.active .quick-btn {
+            animation: fadeInUp 0.3s ease forwards;
+        } */
+
+        /* @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        } */
+
+
+        /* quick suggestion final */
+
+        #quick-suggestions {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 8px 10px;
+            background: #f9fafb;
+            border-top: 1px solid #eee;
+        }
+
+        .quick-chip {
+            background: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .quick-chip:hover {
+            background: #007bff;
+            color: white;
+        }
+
+        .typing {
+
+            font-style: italic;
+
+            color: #666;
+
+            opacity: 0.8;
+
+        }
+
+        #chatbot-button img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        /* translation popup */
+        /* FULL SCREEN OVERLAY */
+        #translate-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            opacity: 0;
+            pointer-events: none;
+
+            transition: all 0.3s ease;
+            z-index: 999;
+        }
+
+        /* ACTIVE STATE */
+        #translate-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        /* MODAL BOX */
+        #translate-modal {
+            background: #ffffff;
+            padding: 20px 30px;
+            border-radius: 12px;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+
+        /* POP ANIMATION */
+        #translate-overlay.active #translate-modal {
+            transform: scale(1);
+        }
+
+        /* TEXT */
+        #translate-text {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        /* SPINNER */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Speaking Indicator */
+        #speaking-indicator {
+            display: flex;
+            gap: 3px;
+            align-items: center;
+
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        #speaking-indicator.active {
+            opacity: 1;
+        }
+
+        #speaking-indicator span {
+            width: 4px;
+            height: 10px;
+            background: white;
+            border-radius: 2px;
+            animation: wave 1s infinite ease-in-out;
+        }
+
+        #speaking-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        #speaking-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes wave {
+
+            0%,
+            100% {
+                height: 6px;
+            }
+
+            50% {
+                height: 14px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="dashboard-container">
+        <header>
+            <h1>Business Risk Prediction for <span id="headerBusinessType"></span></h1>
+            <div id="authSection">
+                <span id="userGreeting"
+                    style="margin-right: 15px; font-weight: bold; color: var(--text-sub); display: none;"></span>
+                <button id="authBtn"
+                    style="width: auto; padding: 8px 16px; background-color: var(--primary-color); color: white;">Login</button>
+            </div>
+        </header>
+
+        <div id="loginModal">
+            <div class="modal-content card">
+                <h2 id="modalTitle">User Login</h2>
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+                    <div id="businessTypeContainer" style="display: none; text-align: left;">
+                        <label style="font-size: 0.7rem; color: var(--text-sub);">BUSINESS TYPE</label>
+                        <select id="businessTypeInput">
+                            <option value="Bakery">Bakery</option>
+                            <option value="Small Cafe">Small Cafe</option>
+                            <option value="Clothing Store">Clothing Store</option>
+                            <option value="Grocery Store">Grocery Store</option>
+                            <option value="Electronics shop">Electronics shop</option>
+                        </select>
+                    </div>
+                    <input type="text" id="usernameInput" placeholder="Username">
+                    <input type="password" id="passwordInput" placeholder="Password">
+                    <button id="primaryAuthBtn" style="background-color: var(--primary-color); color: white;">Sign
+                        In</button>
+                    <p id="toggleText"
+                        style="margin-top: 15px; font-size: 0.8rem; cursor: pointer; color: var(--primary-color);">
+                        New user? <b>Register here</b>
+                    </p>
+                    <button id="closeModalBtn"
+                        style="background: none; color: #7f8c8d; font-size: 0.8rem;">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-layout">
+            <div class="card form-card">
+                <h2>Data Entry</h2>
+                <div class="form-grid">
+                    <div class="full-width"><label>Target Month</label><input id="month" placeholder="e.g., April_2026">
+                    </div>
+
+                    <!-- Calculation Trigger Fields -->
+                    <div><label>Sales</label><input id="sales" type="number" placeholder="0" class="calc-trigger"></div>
+                    <div><label>Expenses</label><input id="expenses" type="number" placeholder="0" class="calc-trigger">
+                    </div>
+                    <div><label>Maintenance</label><input id="maintenance" type="number" placeholder="0"
+                            class="calc-trigger"></div>
+
+                    <!-- Auto Calculated Sales -->
+                    <div><label>Calculated Profit</label><input id="profit" type="number" placeholder="0" readonly
+                            style="background-color: #f8f9fa;"></div>
+
+                    <div><label>Machine Hours</label><input id="usage" type="number" placeholder="0"></div>
+                    <div><label>Breakdowns</label><input id="breakdown" type="number" placeholder="0"></div>
+
+                    <div class="full-width">
+                        <label>Monthly Feedback (Text)</label>
+                        <textarea id="feedback" placeholder="Describe this month's experience..."
+                            style="height: 80px;"></textarea>
+                    </div>
+
+                    <div class="full-width">
+                        <button id="submitBtn">Analyze Risk</button>
+                        <button id="resetBtn">Reset</button>
+                        <button id="downloadBtn">Download PDF Report</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="analytics-column">
+                <div class="card">
+                    <h2>Risk Index</h2>
+                    <div id="gaugeMeter"></div>
+                </div>
+                <div class="card">
+                    <h2>Scorecards</h2>
+                    <div class="scorecard-group">
+                        <div class="scorecard" id="sc_financial">
+                            <h4>Financial</h4>
+                            <p class="score-value">--</p>
+                        </div>
+                        <div class="scorecard" id="sc_operational">
+                            <h4>Operational</h4>
+                            <p class="score-value">--</p>
+                        </div>
+                        <div class="scorecard" id="sc_environmental">
+                            <h4>Environmental</h4>
+                            <p class="score-value">--</p>
+                        </div>
+                        <div class="scorecard" id="sc_behavioral">
+                            <h4>Behavioral</h4>
+                            <p class="score-value">--</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+       <div class="bottom-row">
+
+            <!-- DNA CARD -->
+            <div class="card">
+                <h2>🧬 Business DNA Fingerprint</h2>
+                <h3 id="dnaTypeText"
+                    style="
+                        text-align:center;
+                        color:#2c3e50;
+                        margin-top:-10px;
+                        margin-bottom:10px;
+                        font-weight:600;
+                    ">
+                    DNA Type: --
+                </h3>
+                <div id="dnaMutationBox"
+                 style="
+                    margin-top:10px;
+                    padding:10px;
+                    background:#fff3cd;
+                    border-left:5px solid #ffc107;
+                    border-radius:6px;
+                    font-size:14px;
+                    white-space:pre-line;
+                 ">
+
+                    No major DNA mutation detected.
+
+                </div>
+                <div id="dnaChart" style="height:400px;"></div>
+            </div>
+
+            <!-- TREND GRAPH -->
+            <div class="card">
+                <h2>Trend Analysis</h2>
+                <div id="graph"></div>
+            </div>
+
+           <div class="card">
+                <h2>📈 DNA Evolution Over Time</h2>
+                <div id="dnaEvolutionChart" style="height:350px;"></div>
+            </div>
+
+           <div class="card">
+                <h2>📈 Future Risk Forecast</h2>
+                <div id="riskForecastChart"
+                     style="height:370px;">
+                </div>
+               <div id="forecastInsightBox"
+                     style="
+                        margin-top:10px;
+                        padding:10px;
+                        background:#eaf4ff;
+                        border-left:5px solid #3498db;
+                        border-radius:6px;
+                        font-size:14px;
+                     ">
+
+                    Forecast insight will appear here.
+
+               </div>
+           </div>
+
+        </div>
+    </div>
+    <!-- Chatbot Floating Button -->
+
+    <div id="chatbot-button" onclick="toggleChatbot()">
+        <img src="image.png" alt="chatbot">
+    </div>
+
+    <!-- Chatbot Window -->
+
+    <div id="chatbot-window">
+
+        <!-- Header -->
+
+        <div class="chatbot-header" style="
+     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+     color: white;
+     padding: 15px 20px;
+     font-weight: 600;
+     font-size: 16px;
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     border-radius: 20px 20px 0 0;
+">
+            <span>
+                <b>
+                    Business Risk Assistant
+                </b>
+            </span>
+            <div id="speaking-indicator">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+
+            <button onclick="downloadChatHistory()" title="Download Chat History" style="
+            width:36px;
+            height:36px;
+            border:none;
+            border-radius:8px;
+            background:#444;
+            color:white;
+            cursor:pointer;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-size:18px;
+            ">
+                <i class="fa-solid fa-file-lines"></i>
+            </button>
+
+        </div>
+
+        <!-- Messages -->
+
+        <div id="chatbot-messages"></div>
+        <div id="translate-overlay">
+            <div id="translate-modal">
+                <div class="spinner"></div>
+                <p id="translate-text">Translating to Bengali</p>
+            </div>
+        </div>
+
+        <!-- ========================= -->
+        <!-- FLOATING QUICK BUTTON MENU -->
+        <!-- ========================= -->
+
+        <!-- <div id="quick-menu-container">
+
+            
+            <button id="quick-toggle-btn"><i class="fa-solid fa-comment-dots"></i></button>
+
+            
+            <div id="quick-buttons-panel">
+
+                <button class="quick-btn">Show Risk Ranking</button>
+                <button class="quick-btn">Show Profit Trend</button>
+                <button class="quick-btn">Improve Business</button>
+                <button class="quick-btn">Reduce Risk</button>
+                <button class="quick-btn">Increase Sales</button>
+                <button class="quick-btn">Business Health</button>
+
+            </div>
+
+        </div> -->
+        <div id="quick-suggestions"></div>
+        <!-- Input Area -->
+
+        <div id="chatbot-input-area">
+            <button id="mic-btn" onclick="startVoiceInput()">
+                <i class="fa-solid fa-microphone"></i>
+            </button>
+
+            <!-- PDF Download Button -->
+
+            <!-- Existing Report Button + Input Row -->
+
+            <button id="download-report-btn" title="Download Chat Report" style="
+            width:40px;
+            height:40px;
+            border:none;
+            border-radius:10px;
+            background:black;
+            color:white;
+            cursor:pointer;
+            margin-left:5px;
+            ">
+                <i class="fa-solid fa-file"></i>
+            </button>
+
+
+            <input type="text" id="chatbot-input" placeholder="Type your question..." style="flex:1;" />
+
+            <button id="chatbot-send" onclick="sendMessage()">
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
+
+        </div>
+
+    </div>
+
+    <script>
+        const API = "http://127.0.0.1:8000";
+        let currentUser = sessionStorage.getItem("activeUser") || null;
+        let isLoginMode = true;
+        let isMuted = false;
+        let isSpeaking = false;
+        /* Ensure voices load properly */
+        let voicesLoaded = false;
+        let voices = [];
+
+        window.speechSynthesis.onvoiceschanged = () => {
+            voices = window.speechSynthesis.getVoices();
+        };
+        let currentUtterance = null;
+        let currentSpeakerBtn = null;
+        let isPaused = false;
+        let currentAudio = null;
+
+        // AUTO CALCULATION LOGIC
+        function autoCalculateProfit() {
+            // Get values from the inputs
+            const sales = parseFloat(document.getElementById("sales").value) || 0;
+            const expenses = parseFloat(document.getElementById("expenses").value) || 0;
+            const maintenance = parseFloat(document.getElementById("maintenance").value) || 0;
+
+            // Formula: Profit = Sales - (Expenses + Maintenance)
+            const calculatedProfit = sales - (expenses + maintenance);
+
+            // Update the Profit display field
+            document.getElementById("profit").value = calculatedProfit;
+        }
+
+        document.querySelectorAll('.calc-trigger').forEach(input => {
+            input.addEventListener('input', autoCalculateProfit);
+        });
+
+        async function updateAuthUI() {
+            const authBtn = document.getElementById("authBtn");
+            const greeting = document.getElementById("userGreeting");
+            const headerType = document.getElementById("headerBusinessType");
+            const storedUser = sessionStorage.getItem("activeUser");
+            const storedBusType = sessionStorage.getItem("businessType");
+
+            if (storedUser) {
+                authBtn.innerText = "Logout";
+                authBtn.style.backgroundColor = "#e74c3c";
+                greeting.innerText = `Logged in as: ${storedUser}`;
+                greeting.style.display = "inline";
+                if (storedBusType) headerType.innerText = storedBusType;
+            } else {
+                authBtn.innerText = "Login";
+                headerType.innerText = "Business";
+            }
+        }
+
+        document.getElementById("authBtn").addEventListener("click", () => {
+            if (currentUser) {
+                sessionStorage.removeItem("activeUser");
+                sessionStorage.removeItem("businessType");
+                currentUser = null;
+                location.reload();
+            } else {
+                document.getElementById("loginModal").style.display = "block";
+            }
+        });
+
+        document.getElementById("toggleText").addEventListener("click", () => {
+            // 1. Switch the mode
+            isLoginMode = !isLoginMode;
+
+            // 2. Update Modal Title and Main Button
+            document.getElementById("modalTitle").innerText = isLoginMode ? "User Login" : "Create Account";
+            document.getElementById("primaryAuthBtn").innerText = isLoginMode ? "Sign In" : "Register";
+
+            // 3. Show/Hide Business Type selection (only for registration)
+            document.getElementById("businessTypeContainer").style.display = isLoginMode ? "none" : "block";
+
+            // 4. FIX: Toggle the footer text so user can go back
+            if (isLoginMode) {
+                document.getElementById("toggleText").innerHTML = 'New user? <b>Register here</b>';
+            } else {
+                document.getElementById("toggleText").innerHTML = 'Already have an account? <b>Login</b>';
+            }
+        });
+
+        document.getElementById("primaryAuthBtn").addEventListener("click", async () => {
+            const username = document.getElementById("usernameInput").value.trim();
+            const password = document.getElementById("passwordInput").value.trim();
+            const businessType = document.getElementById("businessTypeInput").value;
+            const endpoint = isLoginMode ? "/login" : "/register";
+            const bodyContent = isLoginMode ? { username, password } : { username, password, business_type: businessType };
+
+            try {
+                const res = await fetch(`${API}${endpoint}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(bodyContent)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    sessionStorage.setItem("activeUser", username);
+                    sessionStorage.setItem("businessType", data.business_type || businessType);
+                    location.reload();
+                } else { alert(data.detail || "Error"); }
+            } catch (e) { alert("Backend unreachable"); }
+        });
+
+        async function runAnalysis() {
+            if (!currentUser) return alert("Please Login First!");
+
+            const payload = {
+                user_id: currentUser,
+                month: document.getElementById("month").value,
+                features: {
+                    Total_Sales: Number(document.getElementById("sales").value),
+                    Total_Expenses: Number(document.getElementById("expenses").value),
+                    Profit: Number(document.getElementById("profit").value),
+                    Machine_Usage_Hours: Number(document.getElementById("usage").value),
+                    Breakdown_Count: Number(document.getElementById("breakdown").value),
+                    Maintenance_Cost: Number(document.getElementById("maintenance").value),
+                    Feedback: document.getElementById("feedback").value
+                }
+            };
+
+            const res = await fetch(`${API}/upload`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            updateUI(data);
+            refreshGraph();
+            document.getElementById("downloadBtn").style.display = "block";
+        }
+
+        function updateUI(data) {
+
+            if (data.overall_risk !== undefined) {
+
+            updateGauge(data.overall_risk);
+
+            updateScorecard(
+            'sc_financial',
+            data.financial_risk
+            );
+
+            updateScorecard(
+            'sc_operational',
+            data.operational_risk
+            );
+
+            updateScorecard(
+            'sc_environmental',
+            data.environmental_risk
+            );
+
+            updateScorecard(
+            'sc_behavioral',
+            data.behavioral_risk
+            );
+
+            updateDNAChart(data.dna_profile);
+            updateDNAEvolution(data.dna_history);
+
+            updateRiskForecast(
+                data.risk_history,
+                data.risk_forecast
+            );
+
+            // ===============================
+            // SHOW FORECAST INSIGHT
+            // ===============================
+
+            if (data.risk_forecast &&
+                data.risk_forecast.length > 0) {
+
+                const lastItem =
+                    data.risk_forecast[
+                        data.risk_forecast.length - 1
+                    ];
+
+                if (lastItem.trend_message) {
+
+                    document.getElementById(
+                        "forecastInsightBox"
+                    ).innerText =
+                        lastItem.trend_message;
+
+                }
+
+            }
+
+            // ===============================
+            // SHOW DNA MUTATIONS
+            // ===============================
+
+            if (data.dna_mutations &&
+                data.dna_mutations.length > 0) {
+
+                document.getElementById(
+                    "dnaMutationBox"
+                ).innerText =
+                    data.dna_mutations.join("\n");
+
+            }
+            else {
+
+                document.getElementById(
+                    "dnaMutationBox"
+                ).innerText =
+                    "No major DNA mutation detected.";
+
+            }
+
+            document.getElementById("dnaTypeText").innerText =
+            "DNA Type: " + data.dna_type;
+
+        } else {
+
+            console.log(data.message);
+        }
+
+}
+
+        function updateScorecard(id, score) {
+            const val = Math.round(score);
+            const card = document.getElementById(id);
+            card.querySelector('.score-value').innerText = val;
+            card.classList.remove('border-low', 'border-mid', 'border-high');
+            if (val < 40) card.classList.add('border-low');
+            else if (val < 70) card.classList.add('border-mid');
+            else card.classList.add('border-high');
+        }
+
+        function updateGauge(val) {
+            let color = val < 40 ? '#27ae60' : (val < 70 ? '#f39c12' : '#c0392b');
+            Plotly.react('gaugeMeter', [{
+                type: "indicator", mode: "gauge+number", value: val,
+                number: { font: { size: 50, family: "Verdana" } },
+                gauge: {
+                    axis: { range: [0, 100], tickwidth: 1 },
+                    bar: { color: color },
+                    bgcolor: "white",
+                    steps: [
+                        { range: [0, 40], color: "#e8f5e9" },
+                        { range: [40, 70], color: "#fff3e0" },
+                        { range: [70, 100], color: "#ffebee" }
+                    ]
+                }
+            }], { margin: { t: 30, b: 30, l: 30, r: 30 } });
+        }
+        // ===============================
+        // BUSINESS DNA RADAR CHART
+        // ===============================
+
+        function updateDNAChart(dna) {
+
+            if (!dna) return;
+
+            const labels = [
+
+                "Financial",
+                "Operational",
+                "Environmental",
+                "Behavioral",
+                "Adaptability"
+
+            ];
+
+            const data = [{
+
+                type: 'scatterpolar',
+
+                r: dna,
+
+                theta: labels,
+
+                fill: 'toself',
+
+                name: 'Business DNA'
+
+            }];
+
+            const layout = {
+
+                    polar: {
+
+                        radialaxis: {
+
+                            visible: true,
+
+                            range: [0, 100]
+
+                        },
+
+                        angularaxis: {
+
+                            tickfont: {
+
+                                size: 11   // smaller label font
+
+                            }
+
+                        }
+
+                    },
+
+                    showlegend: false,
+
+                    margin: {
+
+                        t: 60,
+                        b: 60,
+                        l: 80,
+                        r: 80
+
+                    }
+
+                };
+
+            Plotly.react(
+                'dnaChart',
+                data,
+                layout
+            );
+
+        }
+
+        // ===============================
+        // DNA EVOLUTION GRAPH
+        // ===============================
+
+        function updateDNAEvolution(history) {
+
+            if (!history) return;
+
+            const months =
+                history.map(x => x.month);
+
+            const values =
+                history.map(x => x.dna_strength);
+
+            const data = [{
+
+                x: months,
+                y: values,
+
+                type: 'scatter',
+
+                mode: 'lines+markers',
+
+                line: {
+                    shape: 'spline'
+                }
+
+            }];
+
+            const layout = {
+
+                xaxis: {
+                    title: "Month"
+                },
+
+                yaxis: {
+
+                    title: "DNA Strength",
+
+                    range: [0, 100]
+
+                }
+
+            };
+
+            Plotly.react(
+                'dnaEvolutionChart',
+                data,
+                layout
+            );
+
+        }
+
+        // ===============================
+        // FUTURE RISK FORECAST GRAPH
+        // ===============================
+
+        function updateRiskForecast(
+            risk_history,
+            forecast_data
+        ) {
+
+            if (!risk_history ||
+                !forecast_data) return;
+
+            // Past Risk Data
+            const pastMonths =
+                risk_history.map(x => x.month);
+
+            const pastValues =
+                risk_history.map(
+                    x => x.overall_risk
+                );
+
+            // Future Risk Data
+            const futureMonths =
+                forecast_data.map(
+                    x => x.month
+                );
+
+            const futureValues =
+                forecast_data.map(
+                    x => x.predicted_risk
+                );
+
+            // Confidence Bound Values
+            const upperValues =
+                forecast_data.map(
+                    x => x.upper_bound
+                );
+
+            const lowerValues =
+                forecast_data.map(
+                    x => x.lower_bound
+                );
+
+            // Combine Months
+            const allMonths =
+                pastMonths.concat(
+                    futureMonths
+                );
+
+            const pastTrace = {
+
+                x: pastMonths,
+                y: pastValues,
+
+                type: 'scatter',
+                mode: 'lines+markers',
+
+                name: 'Past Risk',
+
+                line: {
+                    shape: 'spline',   // smooth curve
+                    width: 3
+                }
+
+            };
+
+            // Future Trace
+            const futureTrace = {
+
+                x: futureMonths,
+                y: futureValues,
+
+                type: 'scatter',
+                mode: 'lines+markers',
+
+                name: 'Forecast Risk',
+
+                line: {
+                    dash: 'dash',
+                    width: 3
+                },
+
+                fill: 'tozeroy',
+                opacity: 0.15,
+                line: {
+                    dash: 'dash',
+                    width: 3,
+                    color: '#e67e22'
+                },
+                marker: {
+                    color: '#e67e22'
+                }
+
+            };
+
+            // Confidence Band Trace
+
+            const confidenceTrace = {
+
+                x: futureMonths.concat(
+                    futureMonths.slice().reverse()
+                ),
+
+                y: upperValues.concat(
+                    lowerValues.slice().reverse()
+                ),
+
+                fill: 'toself',
+
+                type: 'scatter',
+
+                fillcolor: 'rgba(255,165,0,0.25)',
+
+                line: {
+                    color: 'transparent'
+                },
+                hoverinfo: 'skip',
+                name: 'Confidence Range'
+
+            };
+
+            const layout = {
+
+                title:
+                "Business Risk Forecast Trend",
+
+                xaxis: {
+                    title: "Month"
+                },
+
+                yaxis: {
+
+                    title: "Risk Level",
+
+                    range: [0,100]
+
+                },
+
+                shapes: [{
+
+                    type: 'line',
+
+                    x0: pastMonths[pastMonths.length-1],
+                    x1: pastMonths[pastMonths.length-1],
+
+                    y0: 0,
+                    y1: 100,
+
+                    line: {
+                        dash: 'dot',
+                        width: 2
+                    }
+
+                }]
+
+            };
+
+
+            Plotly.react(
+
+            'riskForecastChart',
+
+            [
+                pastTrace,
+                confidenceTrace,
+                futureTrace
+            ],
+
+            layout
+
+        );
+
+        }
+
+        async function refreshGraph() {
+            if (!currentUser) return;
+            try {
+                const res = await fetch(`${API}/risk-graph/${currentUser}`);
+                const gData = await res.json();
+                Plotly.react('graph', gData.data, gData.layout);
+            } catch (e) { console.log("Graph load failed"); }
+        }
+
+        async function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const month = document.getElementById("month").value || "N/A";
+            const timestamp = new Date().toLocaleString();
+            const businessType = sessionStorage.getItem("businessType") || "Business";
+            const currentUser = sessionStorage.getItem("activeUser") || "User";
+
+            // 1. EXTRACT DATA CORRECTLY (Fix for the 0/100 issue)
+            const gaugeElement = document.getElementById('gaugeMeter');
+            let overallRisk = "0";
+            if (gaugeElement && gaugeElement.data && gaugeElement.data[0]) {
+                overallRisk = Math.round(gaugeElement.data[0].value);
+            }
+
+            // --- PAGE 1: HEADER & SUMMARY ---
+            doc.setFillColor(44, 62, 80);
+            doc.rect(0, 0, 210, 40, 'F');
+
+            doc.setTextColor(255, 255, 255);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(20);
+            doc.text(`Business Risk Report for ${businessType}`, 15, 20);
+
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Report ID: RISK-${Math.floor(1000 + Math.random() * 9000)}`, 15, 28);
+            doc.text(`Generated on: ${timestamp}`, 15, 33);
+
+            doc.setTextColor(44, 62, 80);
+            doc.setFontSize(14);
+            doc.text(`Monthly Assessment: ${month}`, 15, 50);
+
+            // Overall Risk Index Box
+            doc.setDrawColor(52, 152, 219);
+            doc.setLineWidth(0.5);
+            doc.rect(15, 55, 180, 15);
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "bold");
+            doc.text(`Overall Enterprise Risk Index: ${overallRisk}/100`, 20, 65);
+
+            // Categorical Risk Breakdown
+            doc.setFontSize(13);
+            doc.text("Categorical Risk Breakdown:", 15, 85);
+
+            const risks = [
+                ["Financial Risk", document.querySelector('#sc_financial .score-value').innerText + "/100"],
+                ["Operational Risk", document.querySelector('#sc_operational .score-value').innerText + "/100"],
+                ["Environmental Risk", document.querySelector('#sc_environmental .score-value').innerText + "/100"],
+                ["Behavioral Risk", document.querySelector('#sc_behavioral .score-value').innerText + "/100"]
+            ];
+
+            let yPos = 95;
+            risks.forEach(risk => {
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(11);
+                doc.text(risk[0] + ":", 15, yPos);
+                doc.setFont("helvetica", "bold");
+                doc.text(risk[1], 70, yPos);
+                yPos += 10;
+            });
+
+            // --- PAGE 2: TREND ANALYSIS ---
+            doc.addPage();
+            doc.setFillColor(44, 62, 80);
+            doc.rect(0, 0, 210, 20, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(16);
+            doc.text("Historical Risk Trend Analysis", 15, 13);
+
+            const graphDiv = document.getElementById('graph');
+            if (graphDiv) {
+                const graphCanvas = await html2canvas(graphDiv);
+                const graphImg = graphCanvas.toDataURL('image/png');
+                doc.addImage(graphImg, 'PNG', 10, 30, 190, 100);
+            }
+
+            doc.setTextColor(127, 134, 141);
+            doc.setFontSize(9);
+            doc.text("Note: This graph represents monthly risk fluctuations based on uploaded enterprise data.", 15, 135);
+
+            doc.save(`Risk_Report_${currentUser}_${month}.pdf`);
+        }
+        document.getElementById("submitBtn").addEventListener("click", runAnalysis);
+        document.getElementById("downloadBtn").addEventListener("click", downloadPDF);
+        document.getElementById("resetBtn").addEventListener("click", () => location.reload());
+        document.getElementById("closeModalBtn").addEventListener("click", () => document.getElementById("loginModal").style.display = "none");
+
+        window.onload = async () => {
+            updateAuthUI();
+            if (currentUser) {
+                const lastScore = await refreshGraph();
+                updateGauge(lastScore);
+            } else {
+                updateGauge(0);
+            }
+        };
+
+        function toggleChatbot() {
+
+            const chatWindow =
+                document.getElementById("chatbot-window");
+
+            if (chatWindow.style.display === "flex") {
+
+                chatWindow.style.display = "none";
+
+            } else {
+
+                chatWindow.style.display = "flex";
+            }
+
+        }
+
+        // send button disable
+
+        /* Send Message */
+
+        async function sendMessage() {
+
+            const input = document.getElementById("chatbot-input");
+            const message = input.value.trim();
+            if (!message) return;
+            const sendBtn = document.getElementById("chatbot-send");
+            sendBtn.classList.add("sending");
+            addMessage(message, "user");
+
+            input.value = "";
+
+            // =========================
+            // SHOW TYPING MESSAGE
+            // =========================
+
+            const typingDiv = document.createElement("div");
+
+            typingDiv.className = "bot-message typing";
+
+            typingDiv.innerHTML = `
+    <span></span>
+    <span></span>
+    <span></span>
+    `;
+
+            document
+                .getElementById("chatbot-messages")
+                .appendChild(typingDiv);
+
+            // Auto scroll
+
+            document
+                .getElementById("chatbot-messages")
+                .scrollTop =
+                document
+                    .getElementById("chatbot-messages")
+                    .scrollHeight;
+
+            try {
+
+                const response = await fetch(
+                    "http://127.0.0.1:8000/chatbot",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+
+                        body: JSON.stringify({
+                            user_id: sessionStorage.getItem("activeUser") || "guest_user",
+                            message: message
+                        })
+                    }
+                );
+
+                const data = await response.json();
+
+                // =========================
+                // REMOVE TYPING MESSAGE
+                // =========================
+
+                typingDiv.remove();
+                addMessage(data.reply, "bot");
+                sendBtn.classList.remove("sending");
+            }
+
+            catch (error) {
+
+                typingDiv.remove();
+
+                addMessage(
+                    "Unable to connect to chatbot.",
+                    "bot"
+                );
+
+            }
+
+        }
+
+
+
+        /* Voice Input */
+
+        function startVoiceInput() {
+
+            const micBtn = document.getElementById("mic-btn");
+
+            const recognition =
+                new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+
+            recognition.lang = "en-US";
+
+            // 🔴 Start recording UI
+            micBtn.classList.add("recording");
+
+            recognition.start();
+
+            recognition.onresult = function (event) {
+
+                const speechText = event.results[0][0].transcript;
+
+                document.getElementById("chatbot-input").value = speechText;
+
+                micBtn.classList.remove("recording"); // stop animation
+
+                sendMessage();
+            };
+
+            recognition.onerror = function () {
+
+                micBtn.classList.remove("recording");
+
+                addMessage("Voice recognition failed.", "bot");
+            };
+
+            recognition.onend = function () {
+                micBtn.classList.remove("recording");
+            };
+        }
+
+        /* Display Messages */
+
+        function addMessage(text, sender, audioFile = null) {
+
+            const messages = document.getElementById("chatbot-messages");
+            const messageDiv = document.createElement("div");
+            messageDiv.className =
+                sender === "user"
+                    ? "user-message"
+                    : "bot-message";
+
+            if (sender === "user") {
+                messageDiv.innerText = text;
+            }
+            else {
+                // Create message text
+                const textDiv =
+                    document.createElement("div");
+                textDiv.innerText = text;
+                messageDiv.appendChild(textDiv);
+
+                /* =========================
+                   TRANSLATE BUTTON (NEW)
+                ========================= */
+
+                const translateBtn =
+                    document.createElement("span");
+
+                translateBtn.innerHTML = "🌐";
+
+                translateBtn.title =
+                    "Translate to Bengali";
+
+                translateBtn.style.fontSize = "14px";
+
+                translateBtn.style.cursor = "pointer";
+
+                translateBtn.style.color = "black";
+
+                translateBtn.style.marginRight = "8px";
+
+                translateBtn.style.opacity = "0.8";
+
+                translateBtn.onclick = async () => {
+                    showTranslatePopup();
+                    try {
+
+                        const response = await fetch("http://127.0.0.1:8000/translate",
+                            {
+
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json"
+                                },
+
+                                body: JSON.stringify({
+                                    user_id:
+                                        sessionStorage.getItem("activeUser") || "guest_user",
+                                    message: text
+                                })
+                            }
+                        );
+
+                        if (!response.ok) {
+                            throw new Error("Translation API failed");
+                        }
+
+                        const data = await response.json();
+
+                        setTimeout(() => {
+
+                            addMessage(data.reply, "bot", data.audio_file);
+
+                            hideTranslatePopup(); // ✅ NOW CALLED PROPERLY
+
+                        }, 400);
+
+                    }
+
+                    catch (error) {
+
+                        setTimeout(() => {
+                            addMessage("Translation failed.", "bot");
+                            hideTranslatePopup();
+                        }, 400);
+
+                    }
+
+                };
+
+
+                /* =========================
+                   SPEAKER BUTTON (EXISTING)
+                ========================= */
+
+                const speaker =
+                    document.createElement("span");
+
+                speaker.innerHTML =
+                    '<i class="fa-solid fa-volume-high"></i>';
+
+                speaker.style.fontSize = "14px";
+
+                speaker.style.cursor = "pointer";
+
+                speaker.style.color = "black";
+
+                speaker.style.opacity = "0.8";
+
+                // speaker.onclick = async () => {
+
+                //     const isBengali =
+                //         /[\u0980-\u09FF]/.test(text);
+
+                //     if (audioFile) {
+
+                //         const audio =
+                //             new Audio(
+                //                 "http://127.0.0.1:8000/audio/" +
+                //                 audioFile
+                //             );
+
+                //         audio.play();
+
+                //     }
+
+                //     else if (isBengali) {
+
+                //         speakResponse(text);
+
+                //     }
+
+                //     else {
+
+                //         speakResponse(text);
+
+                //     }
+
+                // };
+
+                speaker.onclick = () => {
+
+                    const isBengali = /[\u0980-\u09FF]/.test(text);
+
+                    // 🟡 SAME MESSAGE CLICK → TOGGLE PAUSE / RESUME
+                    if (currentSpeakerBtn === speaker) {
+
+                        // 🔴 Bengali audio control
+                        if (currentAudio && isBengali) {
+
+                            if (!currentAudio.paused) {
+                                currentAudio.pause();
+                                hideSpeakingIndicator();
+                                isPaused = true;
+                                speaker.innerHTML = '<i class="fa-solid fa-volume-xmark"></i>';
+                            } else {
+                                showSpeakingIndicator();
+                                currentAudio.play();
+                                isPaused = false;
+                                speaker.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+                            }
+
+                            return;
+                        }
+
+                        // 🔵 English speech control
+                        if (window.speechSynthesis.speaking && !isPaused) {
+
+                            window.speechSynthesis.pause();
+                            hideSpeakingIndicator();
+                            isPaused = true;
+
+                            speaker.innerHTML = '<i class="fa-solid fa-volume-xmark"></i>';
+                        }
+
+                        else if (isPaused) {
+
+                            window.speechSynthesis.resume();
+                            isPaused = false;
+                            speaker.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+                        }
+
+                        return;
+                    }
+
+                    // 🔴 DIFFERENT MESSAGE → STOP EVERYTHING
+                    window.speechSynthesis.cancel();
+
+                    if (currentAudio) {
+                        currentAudio.pause();
+                        hideSpeakingIndicator();
+                        currentAudio.currentTime = 0;
+                        currentAudio = null;
+                    }
+
+                    if (currentSpeakerBtn) {
+                        currentSpeakerBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+                    }
+
+                    currentSpeakerBtn = speaker;
+                    isPaused = false;
+
+                    // 🔥 BENGALI → USE AUDIO WITH CONTROL
+                    if (audioFile && isBengali) {
+
+                        currentAudio = new Audio("http://127.0.0.1:8000/audio/" + audioFile);
+
+                        speaker.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+                        showSpeakingIndicator();
+                        currentAudio.play();
+
+                        currentAudio.onended = () => {
+                            currentSpeakerBtn = null;
+                            currentAudio = null;
+                            isPaused = false;
+                            hideSpeakingIndicator();
+                            speaker.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+                        };
+                    }
+
+                    // 🔵 ENGLISH → SPEECH SYNTHESIS
+                    else {
+
+                        currentAudio = null;
+                        speakResponse(text, speaker);
+
+                    }
+                };
+                /* =========================
+                   BUTTON CONTAINER
+                ========================= */
+
+                const buttonContainer =
+                    document.createElement("div");
+
+                buttonContainer.style.display = "flex";
+
+                buttonContainer.style.justifyContent =
+                    "flex-end";
+
+                buttonContainer.style.marginTop =
+                    "4px";
+
+                buttonContainer.appendChild(
+                    translateBtn
+                );
+
+                buttonContainer.appendChild(
+                    speaker
+                );
+
+                messageDiv.appendChild(
+                    buttonContainer
+                );
+
+            }
+            const timeDiv = document.createElement("div");
+            timeDiv.className = "message-time";
+            timeDiv.innerText = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            messageDiv.appendChild(timeDiv);
+            messages.appendChild(messageDiv);
+
+            messages.scrollTop =
+                messages.scrollHeight;
+
+        }
+        // speak indiactor
+        function showSpeakingIndicator() {
+            document.getElementById("speaking-indicator").classList.add("active");
+        }
+
+        function hideSpeakingIndicator() {
+            document.getElementById("speaking-indicator").classList.remove("active");
+        }
+        /* Voice Output with Female Voice */
+
+        /* Voice Output — Forced Female Voice */
+
+        function speakResponse(text, speakerBtn) {
+
+            window.speechSynthesis.cancel(); // ✅ ONLY HERE
+
+            const speech = new SpeechSynthesisUtterance(text);
+            showSpeakingIndicator();
+            const voices = window.speechSynthesis.getVoices();
+
+            const isBengali = /[\u0980-\u09FF]/.test(text);
+
+            let selectedVoice = null;
+
+            if (isBengali) {
+                selectedVoice = voices.find(v =>
+                    v.lang === "bn-IN" || v.lang === "bn-BD"
+                ) || voices.find(v => v.lang.includes("hi"));
+            } else {
+                selectedVoice = voices.find(v =>
+                    v.lang.includes("en")
+                );
+            }
+
+            if (!selectedVoice) selectedVoice = voices[0];
+
+            speech.voice = selectedVoice;
+            speech.lang = selectedVoice.lang;
+
+            // track
+            currentUtterance = speech;
+
+            // UI active
+            // speakerBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+
+            speech.onend = () => {
+                currentUtterance = null;
+                isPaused = false;
+                hideSpeakingIndicator();
+                if (currentSpeakerBtn) {
+                    currentSpeakerBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+                }
+            };
+
+            window.speechSynthesis.speak(speech);
+        }
+        /* Enter Key Support */
+
+        function handleKey(event) {
+
+            if (event.key === "Enter") {
+
+                sendMessage();
+
+            }
+
+        }
+
+        
+
+        document.getElementById("download-report-btn").addEventListener("click", function () {
+
+            const userId =
+                sessionStorage.getItem("activeUser")
+                || "guest_user";
+
+            window.open(
+                `http://127.0.0.1:8000/download-report?user_id=${userId}`
+            );
+
+        });
+
+        function downloadChatHistory() {
+            const userId =
+                sessionStorage.getItem("activeUser")
+                || "guest_user";
+            window.open(
+                `http://127.0.0.1:8000/download-chat-history?user_id=${userId}`,
+                "_blank"
+            );
+        }
+
+        const inputBox = document.getElementById("chatbot-input");
+        const sendBtn = document.getElementById("chatbot-send");
+
+        sendBtn.style.opacity = "0.5";
+        sendBtn.disabled = true;
+
+        inputBox.addEventListener("input", function () {
+            if (this.value.trim()) {
+                sendBtn.style.opacity = "1";
+                sendBtn.disabled = false;
+            } else {
+                sendBtn.style.opacity = "0.5";
+                sendBtn.disabled = true;
+            }
+        });
+
+        // quick suggestion 
+        const suggestions = [
+            "Show Risk Ranking",
+            "Show Profit Trend",
+            "Improve Business",
+            "Reduce Risk",
+            "Increase Sales",
+            "Business Health"
+        ];
+
+        const suggestionContainer = document.getElementById("quick-suggestions");
+
+        suggestions.forEach(text => {
+
+            const btn = document.createElement("div");
+            btn.className = "quick-chip";
+            btn.innerText = text;
+
+            btn.onclick = () => {
+                document.getElementById("chatbot-input").value = text;
+                sendMessage();
+            };
+
+            suggestionContainer.appendChild(btn);
+
+        });
+
+        // translation pop up
+        function showTranslatePopup() {
+            const overlay = document.getElementById("translate-overlay");
+            overlay.classList.add("active");
+        }
+
+        function hideTranslatePopup() {
+            const overlay = document.getElementById("translate-overlay");
+            overlay.classList.remove("active");
+        }
+
+
+    </script>
+</body>
+
+</html>
