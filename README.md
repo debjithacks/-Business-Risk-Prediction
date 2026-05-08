@@ -111,11 +111,3 @@ start index.html
 - **Missing MONGODB_URI / OPENWEATHER_API_KEY**: create `.env` and set the values
 - **Model version warning**: if you see a scikit-learn warning, it usually means the model was trained with a different sklearn version
 
-## Security note
-
-If a secret (API key / MongoDB URI) is accidentally pushed to GitHub:
-
-- Rotate the secret (change password / create new key)
-- Remove it from code
-- Clean git history if needed
-
