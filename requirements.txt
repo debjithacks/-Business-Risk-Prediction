@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+joblib
+pandas
+numpy
+requests
+scikit-learn
+motor
+dnspython
+textblob
+bcrypt
+plotly
+matplotlib
+gTTS
+python-dotenv
+groq
+reportlab
